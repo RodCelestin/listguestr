@@ -53,6 +53,21 @@ struct ContentView: View {
         }
     }
     
+    // Add loadEvents function
+    private func loadEvents() async {
+        isLoading = true
+        errorMessage = nil
+        
+        do {
+            events = try await eventService.fetchEvents()
+        } catch {
+            errorMessage = error.localizedDescription
+            print("Error loading events: \(error)")
+        }
+        
+        isLoading = false
+    }
+    
     var body: some View {
         NavigationView {
             Group { // Content that will have the large title and searchable bar
@@ -207,24 +222,6 @@ struct ContentView: View {
                 print("ContentView: Task finished")
             }
         }
-    }
-    
-    private func loadEvents() async {
-        print("ContentView: loadEvents() called")
-        isLoading = true
-        errorMessage = nil
-        
-        do {
-            print("ContentView: Calling fetchEvents...")
-            events = try await eventService.fetchEvents()
-            print("ContentView: fetchEvents() succeeded, events count: \(events.count)")
-        } catch {
-            print("ContentView: fetchEvents() failed with error: \(error.localizedDescription)")
-            errorMessage = error.localizedDescription
-        }
-        
-        isLoading = false
-        print("ContentView: isLoading set to false")
     }
 }
 

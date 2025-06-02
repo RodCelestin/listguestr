@@ -35,4 +35,21 @@ class EventService: ObservableObject {
             throw error
         }
     }
+    
+    @MainActor
+    func registerGuest(_ guest: Guest) async throws {
+        print("EventService: registerGuest() called for event ID: \(guest.event_id)")
+        do {
+            try await client
+                .database
+                .from("registrations")
+                .insert(guest)
+                .execute()
+            
+            print("EventService: registerGuest() succeeded")
+        } catch {
+            print("EventService: registerGuest() failed with error: \(error.localizedDescription)")
+            throw error
+        }
+    }
 } 
