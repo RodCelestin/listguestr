@@ -43,6 +43,27 @@ struct EventDetailView: View {
         }
     }
     
+    // Helper function to display genre tags
+    @ViewBuilder
+    private func genreTagsView(genres: [String]?) -> some View {
+        if let genres = genres, !genres.isEmpty {
+            ScrollView(.horizontal, showsIndicators: false) {
+                HStack(spacing: 4) {
+                    ForEach(genres, id: \.self) {
+                        genre in
+                        Text(genre)
+                            .font(.caption)
+                            .padding(.horizontal, 6)
+                            .padding(.vertical, 2)
+                            .background(Color.blue.opacity(0.2))
+                            .cornerRadius(4)
+                    }
+                }
+            }
+            .padding(.bottom, 4) // Add some space below the tags
+        }
+    }
+    
     var body: some View {
         GeometryReader { geometry in
             ScrollView {
@@ -80,6 +101,9 @@ struct EventDetailView: View {
                             .padding(.bottom)
                     }
 
+                    // Add genre tags here
+                    genreTagsView(genres: event.genres)
+                    
                     Text(event.title)
                         .font(.largeTitle)
                         .padding(.bottom, 4)
@@ -279,7 +303,7 @@ struct EventDetailView_Previews: PreviewProvider {
     static var previews: some View {
         NavigationView {
             // Create a sample Event with registrationDeadline and location for the preview
-            EventDetailView(event: Event(id: UUID(), title: "Sample Event", description: "This is a sample event description.", date: Date(), location: "Sample Location", createdAt: Date(), artistImageUrlString: nil, registrationDeadline: Calendar.current.date(byAdding: .day, value: 7, to: Date())))
+            EventDetailView(event: Event(id: UUID(), title: "Sample Event", description: "This is a sample event description.", date: Date(), location: "Sample Location", createdAt: Date(), artistImageUrlString: nil, registrationDeadline: Calendar.current.date(byAdding: .day, value: 7, to: Date()), genres: nil))
                 .environmentObject(EventService()) // Provide EventService for preview
         }
     }

@@ -16,16 +16,15 @@ class EventService: ObservableObject {
         print("EventService: fetchEvents() called")
         do {
             let response: [Event] = try await client
-                .database
                 .from("events")
-                .select("*, venue")
+                .select("*, venue, genres")
                 .order("date", ascending: true)
                 .execute()
                 .value
             
             print("EventService: Fetched Events:")
             for event in response {
-                print("  Event Title: \(event.title), Location: \(event.location ?? "N/A")")
+                print("  Event Title: \(event.title), Location: \(event.location ?? "N/A"), Genres: \(event.genres?.joined(separator: ", ") ?? "N/A")")
             }
             
             print("EventService: fetchEvents() succeeded")
@@ -41,7 +40,6 @@ class EventService: ObservableObject {
         print("EventService: registerGuest() called for event ID: \(guest.event_id)")
         do {
             try await client
-                .database
                 .from("registrations")
                 .insert(guest)
                 .execute()

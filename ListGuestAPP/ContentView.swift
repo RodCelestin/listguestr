@@ -53,6 +53,26 @@ struct ContentView: View {
         }
     }
     
+    // Helper function to display genre tags
+    @ViewBuilder
+    private func genreTagsView(genres: [String]?) -> some View {
+        if let genres = genres, !genres.isEmpty {
+            ScrollView(.horizontal, showsIndicators: false) {
+                HStack(spacing: 4) {
+                    ForEach(genres, id: \.self) {
+                        genre in
+                        Text(genre)
+                            .font(.caption)
+                            .padding(.horizontal, 6)
+                            .padding(.vertical, 2)
+                            .background(Color.blue.opacity(0.2))
+                            .cornerRadius(4)
+                    }
+                }
+            }
+        }
+    }
+    
     // Add loadEvents function
     private func loadEvents() async {
         isLoading = true
@@ -106,6 +126,11 @@ struct ContentView: View {
                                     VStack(alignment: .leading, spacing: 8) {
                                         Text(event.title)
                                             .font(.headline)
+                                        
+                                        // Add genre tags to list item
+                                        genreTagsView(genres: event.genres)
+                                            .padding(.bottom, 4)
+                                        
                                         if let description = event.description {
                                             Text(description)
                                                 .font(.subheadline)
@@ -173,6 +198,9 @@ struct ContentView: View {
                                             Text(event.title)
                                                 .font(.headline)
                                                 .lineLimit(1)
+                                            
+                                            // Add genre tags to grid item
+                                            genreTagsView(genres: event.genres)
                                             
                                             if let location = event.location {
                                                 Text(location)

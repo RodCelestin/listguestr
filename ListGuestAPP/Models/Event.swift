@@ -9,6 +9,7 @@ struct Event: Identifiable, Codable {
     let createdAt: Date
     let artistImageUrlString: String?
     let registrationDeadline: Date?
+    let genres: [String]?
     
     var artistImageUrl: URL? {
         guard let urlString = artistImageUrlString, !urlString.isEmpty else {
@@ -27,5 +28,6 @@ struct Event: Identifiable, Codable {
         case createdAt = "created_at"
         case artistImageUrlString = "spotify_artist_id"
         case registrationDeadline = "registration_deadline"
+        case genres
     }
 } 
