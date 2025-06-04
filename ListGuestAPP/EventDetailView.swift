@@ -229,6 +229,16 @@ struct EventDetailView: View {
                                         email = ""
                                         additionalRequest = ""
                                         showingSuccessMessage = true
+                                        
+                                        // Save the applied event ID to UserDefaults
+                                        var appliedEventIDs = UserDefaults.standard.stringArray(forKey: "appliedEventIDs") ?? []
+                                        let eventIDString = event.id.uuidString
+                                        if !appliedEventIDs.contains(eventIDString) {
+                                            appliedEventIDs.append(eventIDString)
+                                            UserDefaults.standard.set(appliedEventIDs, forKey: "appliedEventIDs")
+                                            print("Saved applied event ID: \(event.id.uuidString)")
+                                        }
+                                        
                                     } catch {
                                         // On failure
                                         print("Error registering guest: \(error.localizedDescription)")

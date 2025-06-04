@@ -16,6 +16,7 @@ struct ContentView: View {
     @State private var searchText = "" // State for the search bar text
     @State private var isShowingFilterModal = false // State to control filter modal presentation
     @State private var appliedGenres: Set<String> = [] // State to store applied filters
+    @State private var appliedEvents: [Event] = [] // State to store events the user has applied to
     
     // Define columns for the grid view
     private let columns: [GridItem] = [
@@ -46,6 +47,15 @@ struct ContentView: View {
         }
         
         return eventsToFilter
+    }
+    
+    // Helper function to load applied events from UserDefaults
+    private func loadAppliedEvents() {
+        let appliedEventIDs = UserDefaults.standard.stringArray(forKey: "appliedEventIDs") ?? []
+        appliedEvents = events.filter { event in
+            appliedEventIDs.contains(event.id.uuidString)
+        }
+        print("Loaded applied events: \(appliedEvents.count)")
     }
     
     // Helper function to calculate days until registration closes
@@ -101,6 +111,7 @@ struct ContentView: View {
         
         isLoading = false
         print("ContentView: Task finished")
+        loadAppliedEvents() // Load applied events after events are fetched
     }
     
     var body: some View {
@@ -122,68 +133,147 @@ struct ContentView: View {
                     }
                 } else {
                     if isShowingList {
-                        List(filteredEvents) { event in
-                            NavigationLink(destination: EventDetailView(event: event)) {
-                                HStack(alignment: .top, spacing: 16) {
-                                    if let imageUrl = event.artistImageUrl {
-                                        AsyncImage(url: imageUrl) {
-                                            image in
-                                            image.resizable()
-                                                .aspectRatio(contentMode: .fit)
-                                                .frame(width: 50, height: 50)
-                                                .clipShape(Circle())
-                                        } placeholder: {
-                                            ProgressView()
-                                                .frame(width: 50, height: 50)
+                        List {
+                            // Section for Applied Events
+                            if !appliedEvents.isEmpty {
+                                Section(header: Text("Applied Events")) {
+                                    ForEach(appliedEvents) {
+                                        event in
+                                        NavigationLink(destination: EventDetailView(event: event)) {
+                                            HStack(alignment: .top, spacing: 16) {
+                                                if let imageUrl = event.artistImageUrl {
+                                                    AsyncImage(url: imageUrl) {
+                                                        image in
+                                                        image.resizable()
+                                                            .aspectRatio(contentMode: .fit)
+                                                            .frame(width: 50, height: 50)
+                                                            .clipShape(Circle())
+                                                    } placeholder: {
+                                                        ProgressView()
+                                                            .frame(width: 50, height: 50)
+                                                    }
+                                                }
+                                                
+                                                VStack(alignment: .leading, spacing: 8) {
+                                                    Text(event.title)
+                                                        .font(.headline)
+                                                    
+                                                    // Add genre tags to list item
+                                                    genreTagsView(genres: event.genres)
+                                                        .padding(.bottom, 4)
+                                                    
+                                                    if let description = event.description {
+                                                        Text(description)
+                                                            .font(.subheadline)
+                                                            .foregroundColor(.secondary)
+                                                    }
+                                                    HStack {
+                                                        Image(systemName: "calendar")
+                                                        Text(event.date, style: .date)
+                                                        Text(event.date, style: .time)
+                                                    }
+                                                    .font(.caption)
+                                                    .foregroundColor(.secondary)
+                                                    
+                                                    if let location = event.location {
+                                                        HStack {
+                                                            Image(systemName: "location")
+                                                            Text(location)
+                                                        }
+                                                        .font(.caption)
+                                                        .foregroundColor(.secondary)
+                                                    }
+                                                    
+                                                    if let deadline = event.registrationDeadline {
+                                                        HStack {
+                                                            Image(systemName: "clock")
+                                                            Text("Registration closes: \(deadline, style: .date)")
+                                                        }
+                                                        .font(.caption)
+                                                        .foregroundColor(.secondary)
+                                                    }
+                                                    
+                                                    if let daysLeft = daysUntilClosing(for: event) {
+                                                        Text(daysLeft)
+                                                            .font(.caption)
+                                                            .foregroundColor(.blue)
+                                                    }
+                                                }
+                                                .padding(.vertical, 4)
+                                            }
                                         }
                                     }
-                                    
-                                    VStack(alignment: .leading, spacing: 8) {
-                                        Text(event.title)
-                                            .font(.headline)
-                                        
-                                        // Add genre tags to list item
-                                        genreTagsView(genres: event.genres)
-                                            .padding(.bottom, 4)
-                                        
-                                        if let description = event.description {
-                                            Text(description)
-                                                .font(.subheadline)
-                                                .foregroundColor(.secondary)
-                                        }
-                                        HStack {
-                                            Image(systemName: "calendar")
-                                            Text(event.date, style: .date)
-                                            Text(event.date, style: .time)
-                                        }
-                                        .font(.caption)
-                                        .foregroundColor(.secondary)
-                                        
-                                        if let location = event.location {
-                                            HStack {
-                                                Image(systemName: "location")
-                                                Text(location)
+                                }
+                            }
+                            
+                            // Section for Other Events (excluding applied ones)
+                            Section(header: Text("All Events")) {
+                                ForEach(filteredEvents.filter { event in
+                                    !appliedEvents.contains(where: { $0.id == event.id })
+                                }) { event in
+                                    NavigationLink(destination: EventDetailView(event: event)) {
+                                        HStack(alignment: .top, spacing: 16) {
+                                            if let imageUrl = event.artistImageUrl {
+                                                AsyncImage(url: imageUrl) {
+                                                    image in
+                                                    image.resizable()
+                                                        .aspectRatio(contentMode: .fit)
+                                                        .frame(width: 50, height: 50)
+                                                        .clipShape(Circle())
+                                                } placeholder: {
+                                                    ProgressView()
+                                                        .frame(width: 50, height: 50)
+                                                }
                                             }
-                                            .font(.caption)
-                                            .foregroundColor(.secondary)
-                                        }
-                                        
-                                        if let deadline = event.registrationDeadline {
-                                            HStack {
-                                                Image(systemName: "clock")
-                                                Text("Registration closes: \(deadline, style: .date)")
-                                            }
-                                            .font(.caption)
-                                            .foregroundColor(.secondary)
-                                        }
-                                        
-                                        if let daysLeft = daysUntilClosing(for: event) {
-                                            Text(daysLeft)
+                                            
+                                            VStack(alignment: .leading, spacing: 8) {
+                                                Text(event.title)
+                                                    .font(.headline)
+                                                
+                                                // Add genre tags to list item
+                                                genreTagsView(genres: event.genres)
+                                                    .padding(.bottom, 4)
+                                                
+                                                if let description = event.description {
+                                                    Text(description)
+                                                        .font(.subheadline)
+                                                        .foregroundColor(.secondary)
+                                                }
+                                                HStack {
+                                                    Image(systemName: "calendar")
+                                                    Text(event.date, style: .date)
+                                                    Text(event.date, style: .time)
+                                                }
                                                 .font(.caption)
-                                                .foregroundColor(.blue)
+                                                .foregroundColor(.secondary)
+                                                
+                                                if let location = event.location {
+                                                    HStack {
+                                                        Image(systemName: "location")
+                                                        Text(location)
+                                                    }
+                                                    .font(.caption)
+                                                    .foregroundColor(.secondary)
+                                                }
+                                                
+                                                if let deadline = event.registrationDeadline {
+                                                    HStack {
+                                                        Image(systemName: "clock")
+                                                        Text("Registration closes: \(deadline, style: .date)")
+                                                    }
+                                                    .font(.caption)
+                                                    .foregroundColor(.secondary)
+                                                }
+                                                
+                                                if let daysLeft = daysUntilClosing(for: event) {
+                                                    Text(daysLeft)
+                                                        .font(.caption)
+                                                        .foregroundColor(.blue)
+                                                }
+                                            }
+                                            .padding(.vertical, 4)
                                         }
                                     }
-                                    .padding(.vertical, 4)
                                 }
                             }
                         }
@@ -235,10 +325,12 @@ struct ContentView: View {
                                                     .font(.caption)
                                                     .foregroundColor(.blue)
                                             }
+                                            Spacer() // Push content to the top
                                         }
                                         .padding()
                                         .background(Color.gray.opacity(0.1))
                                         .cornerRadius(12)
+                                        .frame(maxWidth: .infinity, minHeight: 150) // Ensure cards expand and have a minimum height
                                     }
                                 }
                             }
@@ -277,6 +369,15 @@ struct ContentView: View {
                         isShowingList.toggle()
                     } label: {
                         Image(systemName: isShowingList ? "square.grid.2x2" : "list.bullet")
+                    }
+                }
+                
+                // Settings button
+                ToolbarItem(placement: .navigationBarTrailing) {
+                    NavigationLink {
+                        SettingsView()
+                    } label: {
+                        Image(systemName: "gear")
                     }
                 }
             }
