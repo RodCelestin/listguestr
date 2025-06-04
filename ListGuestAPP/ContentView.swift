@@ -14,6 +14,8 @@ struct ContentView: View {
     @State private var errorMessage: String?
     @State private var isShowingList = true // State to toggle between list and grid
     @State private var searchText = "" // State for the search bar text
+    @State private var isShowingFilterModal = false // State to control filter modal presentation
+    @State private var appliedGenres: Set<String> = [] // State to store applied filters
     
     // Define columns for the grid view
     private let columns: [GridItem] = [
@@ -23,15 +25,27 @@ struct ContentView: View {
     
     // Computed property to filter events based on search text
     private var filteredEvents: [Event] {
-        if searchText.isEmpty {
-            return events
-        } else {
-            return events.filter {
+        var eventsToFilter = events
+        
+        // Apply search text filter
+        if !searchText.isEmpty {
+            eventsToFilter = eventsToFilter.filter {
                 $0.title.localizedStandardContains(searchText) ||
                 ($0.description?.localizedStandardContains(searchText) ?? false) ||
                 ($0.location?.localizedStandardContains(searchText) ?? false)
             }
         }
+        
+        // Apply genre filter if any genres are selected
+        if !appliedGenres.isEmpty {
+            eventsToFilter = eventsToFilter.filter {
+                // An event is included if it has at least one genre that is in the appliedGenres set
+                guard let eventGenres = $0.genres else { return false }
+                return !appliedGenres.intersection(eventGenres).isEmpty
+            }
+        }
+        
+        return eventsToFilter
     }
     
     // Helper function to calculate days until registration closes
@@ -86,6 +100,7 @@ struct ContentView: View {
         }
         
         isLoading = false
+        print("ContentView: Task finished")
     }
     
     var body: some View {
@@ -238,16 +253,44 @@ struct ContentView: View {
             .navigationTitle("Events")
             .searchable(text: $searchText, placement: .navigationBarDrawer(displayMode: .always))
             .toolbar {
-                Button {
-                    isShowingList.toggle()
-                } label: {
-                    Image(systemName: isShowingList ? "square.grid.2x2" : "list.bullet")
+                ToolbarItem(placement: .navigationBarLeading) {
+                    Button {
+                        isShowingFilterModal.toggle()
+                    } label: {
+                        Image(systemName: "line.3.horizontal.decrease.circle")
+                            .overlay(
+                                // Show a dot overlay if filters are applied
+                                ZStack {
+                                    if !appliedGenres.isEmpty {
+                                        Circle()
+                                            .fill(Color.blue) // Or another color to indicate active filter
+                                            .frame(width: 8, height: 8)
+                                            .offset(x: 8, y: -8) // Adjust position as needed
+                                    }
+                                }
+                            )
+                    }
+                }
+                
+                ToolbarItem(placement: .navigationBarTrailing) {
+                    Button {
+                        isShowingList.toggle()
+                    } label: {
+                        Image(systemName: isShowingList ? "square.grid.2x2" : "list.bullet")
+                    }
                 }
             }
             .task {
                 print("ContentView: Task started")
                 await loadEvents()
                 print("ContentView: Task finished")
+            }
+            .sheet(isPresented: $isShowingFilterModal) { // Present modal when isShowingFilterModal is true
+                // Placeholder for the filter modal view
+                FilterModalView(allEvents: events, initialSelectedGenres: appliedGenres) { selectedGenres in
+                    appliedGenres = selectedGenres // Update appliedGenres when filters are applied
+                }
+                .presentationDetents([.medium, .large]) // Optional: customize modal size
             }
         }
     }
@@ -256,5 +299,6 @@ struct ContentView: View {
 struct ContentView_Previews: PreviewProvider {
     static var previews: some View {
         ContentView()
+            .environmentObject(EventService())
     }
 }

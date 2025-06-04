@@ -80,12 +80,14 @@ struct EventDetailView: View {
                                     .aspectRatio(contentMode: .fill)
                                     .frame(width: geometry.size.width * 0.7, height: geometry.size.width * 0.7)
                                     .clipped()
+                                    .shadow(radius: 8)
                             case .failure:
                                 Image(systemName: "person.circle") // Placeholder for error
                                     .resizable()
                                     .aspectRatio(contentMode: .fit)
                                     .frame(width: geometry.size.width * 0.7, height: geometry.size.width * 0.7)
                                     .clipped()
+                                    .shadow(radius: 8)
                             @unknown default:
                                 EmptyView()
                             }
@@ -99,6 +101,7 @@ struct EventDetailView: View {
                             .frame(width: geometry.size.width * 0.7, height: geometry.size.width * 0.7)
                             .clipped()
                             .padding(.bottom)
+                            .shadow(radius: 8)
                     }
 
                     // Add genre tags here
