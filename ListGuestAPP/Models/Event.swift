@@ -1,6 +1,6 @@
 import Foundation
 
-struct Event: Identifiable, Codable {
+struct Event: Identifiable, Codable, Hashable {
     let id: UUID
     let title: String
     let description: String?

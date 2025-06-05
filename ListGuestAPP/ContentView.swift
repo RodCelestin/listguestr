@@ -17,6 +17,7 @@ struct ContentView: View {
     @State private var isShowingFilterModal = false // State to control filter modal presentation
     @State private var appliedGenres: Set<String> = [] // State to store applied filters
     @State private var appliedEvents: [Event] = [] // State to store events the user has applied to
+    @State private var selectedEvent: Event? = nil // State to control navigation to EventDetailView
     
     // Define columns for the grid view
     private let columns: [GridItem] = [
@@ -139,7 +140,10 @@ struct ContentView: View {
                                 Section(header: Text("Applied Events")) {
                                     ForEach(appliedEvents) {
                                         event in
-                                        NavigationLink(destination: EventDetailView(event: event)) {
+                                        // Use selection and tag for programmatic navigation control
+                                        NavigationLink(tag: event, selection: $selectedEvent) {
+                                            EventDetailView(event: event, selectedEvent: $selectedEvent) // Pass selectedEvent binding
+                                        } label: {
                                             HStack(alignment: .top, spacing: 16) {
                                                 if let imageUrl = event.artistImageUrl {
                                                     AsyncImage(url: imageUrl) {
@@ -211,7 +215,10 @@ struct ContentView: View {
                                 ForEach(filteredEvents.filter { event in
                                     !appliedEvents.contains(where: { $0.id == event.id })
                                 }) { event in
-                                    NavigationLink(destination: EventDetailView(event: event)) {
+                                    // Use selection and tag for programmatic navigation control
+                                    NavigationLink(tag: event, selection: $selectedEvent) {
+                                        EventDetailView(event: event, selectedEvent: $selectedEvent) // Pass selectedEvent binding
+                                    } label: {
                                         HStack(alignment: .top, spacing: 16) {
                                             if let imageUrl = event.artistImageUrl {
                                                 AsyncImage(url: imageUrl) {
@@ -282,59 +289,138 @@ struct ContentView: View {
                         }
                     } else {
                         ScrollView {
-                            LazyVGrid(columns: columns, spacing: 16) {
-                                ForEach(filteredEvents) { event in
-                                    NavigationLink(destination: EventDetailView(event: event)) {
-                                        VStack(spacing: 8) {
-                                            if let imageUrl = event.artistImageUrl {
-                                                AsyncImage(url: imageUrl) {
-                                                    image in
-                                                    image.resizable()
-                                                        .aspectRatio(contentMode: .fill)
-                                                        .frame(height: 100)
-                                                        .clipped()
-                                                        .cornerRadius(8)
+                            VStack(alignment: .leading) { // Use VStack to arrange sections vertically
+                                // Section for Applied Events in Grid
+                                if !appliedEvents.isEmpty {
+                                    Text("Applied Events")
+                                        .font(.title2)
+                                        .padding(.horizontal)
+                                        .padding(.top)
+                                    
+                                    LazyVGrid(columns: columns, spacing: 16) {
+                                        ForEach(appliedEvents) {
+                                            event in
+                                            // Use selection and tag for programmatic navigation control
+                                            NavigationLink(tag: event, selection: $selectedEvent) {
+                                                EventDetailView(event: event, selectedEvent: $selectedEvent) // Pass selectedEvent binding
+                                            } label: {
+                                                VStack(spacing: 8) {
+                                                    if let imageUrl = event.artistImageUrl {
+                                                        AsyncImage(url: imageUrl) {
+                                                            image in
+                                                            image.resizable()
+                                                                .aspectRatio(contentMode: .fill)
+                                                                .frame(height: 100)
+                                                                .clipped()
+                                                                .cornerRadius(8)
+                                                            
+                                                        } placeholder: {
+                                                            ProgressView()
+                                                                .frame(height: 100)
+                                                        }
+                                                    }
+                                                    Text(event.title)
+                                                        .font(.headline)
+                                                        .lineLimit(1)
                                                     
-                                                } placeholder: {
-                                                    ProgressView()
-                                                        .frame(height: 100)
+                                                    // Add genre tags to grid item
+                                                    genreTagsView(genres: event.genres)
+                                                    
+                                                    if let location = event.location {
+                                                        Text(location)
+                                                            .font(.caption)
+                                                            .foregroundColor(.secondary)
+                                                            .lineLimit(1)
+                                                    }
+                                                    
+                                                    if let deadline = event.registrationDeadline {
+                                                        Text("Closes: \(deadline, style: .date)")
+                                                            .font(.caption)
+                                                            .foregroundColor(.secondary)
+                                                    }
+                                                    
+                                                    if let daysLeft = daysUntilClosing(for: event) {
+                                                        Text(daysLeft)
+                                                            .font(.caption)
+                                                            .foregroundColor(.blue)
+                                                    }
+                                                    Spacer() // Push content to the top
                                                 }
+                                                .padding()
+                                                .background(Color.gray.opacity(0.1))
+                                                .cornerRadius(12)
+                                                .frame(maxWidth: .infinity, minHeight: 150) // Ensure cards expand and have a minimum height
                                             }
-                                            Text(event.title)
-                                                .font(.headline)
-                                                .lineLimit(1)
-                                            
-                                            // Add genre tags to grid item
-                                            genreTagsView(genres: event.genres)
-                                            
-                                            if let location = event.location {
-                                                Text(location)
-                                                    .font(.caption)
-                                                    .foregroundColor(.secondary)
-                                                    .lineLimit(1)
-                                            }
-                                            
-                                            if let deadline = event.registrationDeadline {
-                                                Text("Closes: \(deadline, style: .date)")
-                                                    .font(.caption)
-                                                    .foregroundColor(.secondary)
-                                            }
-                                            
-                                            if let daysLeft = daysUntilClosing(for: event) {
-                                                Text(daysLeft)
-                                                    .font(.caption)
-                                                    .foregroundColor(.blue)
-                                            }
-                                            Spacer() // Push content to the top
                                         }
-                                        .padding()
-                                        .background(Color.gray.opacity(0.1))
-                                        .cornerRadius(12)
-                                        .frame(maxWidth: .infinity, minHeight: 150) // Ensure cards expand and have a minimum height
+                                    }
+                                    .padding(.horizontal)
+                                }
+                                
+                                // Section for Other Events in Grid
+                                Text("All Events")
+                                    .font(.title2)
+                                    .padding(.horizontal)
+                                    .padding(.top, appliedEvents.isEmpty ? 0 : 16) // Add top padding only if Applied Events section is present
+
+                                LazyVGrid(columns: columns, spacing: 16) {
+                                    ForEach(filteredEvents.filter { event in
+                                        !appliedEvents.contains(where: { $0.id == event.id })
+                                    }) { event in
+                                        // Use selection and tag for programmatic navigation control
+                                        NavigationLink(tag: event, selection: $selectedEvent) {
+                                            EventDetailView(event: event, selectedEvent: $selectedEvent) // Pass selectedEvent binding
+                                        } label: {
+                                            VStack(spacing: 8) {
+                                                if let imageUrl = event.artistImageUrl {
+                                                    AsyncImage(url: imageUrl) {
+                                                        image in
+                                                        image.resizable()
+                                                            .aspectRatio(contentMode: .fill)
+                                                            .frame(height: 100)
+                                                            .clipped()
+                                                            .cornerRadius(8)
+                                                        
+                                                    } placeholder: {
+                                                        ProgressView()
+                                                            .frame(height: 100)
+                                                    }
+                                                }
+                                                Text(event.title)
+                                                    .font(.headline)
+                                                    .lineLimit(1)
+                                                
+                                                // Add genre tags to grid item
+                                                genreTagsView(genres: event.genres)
+                                                
+                                                if let location = event.location {
+                                                    Text(location)
+                                                        .font(.caption)
+                                                        .foregroundColor(.secondary)
+                                                        .lineLimit(1)
+                                                }
+                                                
+                                                if let deadline = event.registrationDeadline {
+                                                    Text("Closes: \(deadline, style: .date)")
+                                                        .font(.caption)
+                                                        .foregroundColor(.secondary)
+                                                }
+                                                
+                                                if let daysLeft = daysUntilClosing(for: event) {
+                                                    Text(daysLeft)
+                                                        .font(.caption)
+                                                        .foregroundColor(.blue)
+                                                }
+                                                Spacer() // Push content to the top
+                                            }
+                                            .padding()
+                                            .background(Color.gray.opacity(0.1))
+                                            .cornerRadius(12)
+                                            .frame(maxWidth: .infinity, minHeight: 150) // Ensure cards expand and have a minimum height
+                                        }
                                     }
                                 }
+                                .padding(.horizontal)
                             }
-                            .padding(.horizontal)
                         }
                         .refreshable {
                             await loadEvents()
