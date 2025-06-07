@@ -11,6 +11,7 @@ struct Event: Identifiable, Codable, Hashable {
     let registrationDeadline: Date?
     let genres: [String]?
     let capacity: Int?
+    let note: String?
     
     var artistImageUrl: URL? {
         guard let urlString = artistImageUrlString, !urlString.isEmpty else {
@@ -31,5 +32,6 @@ struct Event: Identifiable, Codable, Hashable {
         case registrationDeadline = "registration_deadline"
         case genres
         case capacity
+        case note
     }
 } 

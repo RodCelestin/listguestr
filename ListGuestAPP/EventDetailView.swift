@@ -180,6 +180,10 @@ struct EventDetailView: View {
 
     private var eventInfoSection: some View {
         VStack(alignment: .leading, spacing: 12) {
+            Text("About this event")
+                .font(.caption)
+                .foregroundColor(.secondary)
+                .padding(.bottom, 2)
             if let description = event.description {
                 Text(description)
                     .font(.body)
@@ -214,6 +218,12 @@ struct EventDetailView: View {
                 }
                 .font(.subheadline)
                 .foregroundColor(.secondary)
+            }
+            if let note = event.note, !note.isEmpty {
+                Text(note)
+                    .font(.footnote)
+                    .foregroundColor(.secondary)
+                    .padding(.top, 4)
             }
         }
         .padding()
@@ -281,7 +291,7 @@ struct EventDetailView: View {
                 endPoint: .top
             )
             .frame(height: 100)
-            .edgesIgnoringSafeArea(.bottom)
+            .ignoresSafeArea(.container, edges: .bottom)
             Button(action: {
                 showingSuccessMessage = false
                 registrationErrorMessage = nil
@@ -339,6 +349,30 @@ struct EventDetailView: View {
         }
     }
 
+    // Helper to format date with ordinal suffix
+    private func formattedFullDateWithOrdinal(_ date: Date) -> String? {
+        let calendar = Calendar.current
+        let day = calendar.component(.day, from: date)
+        let formatter = DateFormatter()
+        formatter.dateFormat = "MMMM"
+        let month = formatter.string(from: date)
+        formatter.dateFormat = "yyyy"
+        let year = formatter.string(from: date)
+        let suffix: String
+        switch day {
+        case 11, 12, 13:
+            suffix = "th"
+        default:
+            switch day % 10 {
+            case 1: suffix = "st"
+            case 2: suffix = "nd"
+            case 3: suffix = "rd"
+            default: suffix = "th"
+            }
+        }
+        return "\(month) \(day)\(suffix), \(year)"
+    }
+
     private var navigationLink: some View {
         NavigationLink(destination: RegistrationConfirmationView(guest: registeredGuest ?? Guest(id: UUID(), event_id: UUID(), full_name: "", role: nil, company: nil, email: "", additional_request: nil, created_at: Date()), selectedEvent: $selectedEvent), isActive: $navigateToConfirmation) {
             EmptyView()
@@ -354,9 +388,28 @@ struct EventDetailView: View {
                         VStack(alignment: .leading, spacing: 16) {
                             appliedBanner
                             artistImageSection(geometry: geometry)
-                            Text(event.title)
-                                .font(.largeTitle)
-                                .padding(.bottom, 4)
+                            HStack(alignment: .center) {
+                                Text(event.title)
+                                    .font(.largeTitle)
+                                    .padding(.bottom, 4)
+                                Spacer()
+                                // Stylized date block
+                                let month = event.date.formatted(.dateTime.month(.abbreviated)).uppercased()
+                                let day = event.date.formatted(.dateTime.day())
+                                VStack(spacing: 0) {
+                                    Text(month)
+                                        .font(.caption)
+                                        .fontWeight(.bold)
+                                        .foregroundColor(Color.cyan)
+                                    Text(day)
+                                        .font(.title)
+                                        .fontWeight(.bold)
+                                        .foregroundColor(.white)
+                                }
+                                .frame(width: 48, height: 56)
+                                .background(Color.black)
+                                .cornerRadius(8)
+                            }
                             genreTagsView(genres: event.genres)
                             eventInfoSection
                             Text("Registrate now for this event 🤘")
@@ -376,6 +429,19 @@ struct EventDetailView: View {
         .onTapGesture { hideKeyboard() }
         .navigationTitle(event.title)
         .navigationBarTitleDisplayMode(.inline)
+        .toolbar {
+            ToolbarItem(placement: .principal) {
+                VStack(spacing: 2) {
+                    Text(event.title)
+                        .font(.headline)
+                    if let formattedDate = formattedFullDateWithOrdinal(event.date) {
+                        Text(formattedDate)
+                            .font(.caption)
+                            .foregroundColor(.secondary)
+                    }
+                }
+            }
+        }
     }
     
     // Helper function to hide the keyboard
@@ -388,7 +454,7 @@ struct EventDetailView_Previews: PreviewProvider {
     static var previews: some View {
         NavigationView {
             // Create a sample Event with registrationDeadline and location for the preview
-            EventDetailView(event: Event(id: UUID(), title: "Sample Event", description: "This is a sample event description.", date: Date(), location: "Sample Location", createdAt: Date(), artistImageUrlString: nil, registrationDeadline: Calendar.current.date(byAdding: .day, value: 7, to: Date()), genres: nil, capacity: nil), selectedEvent: .constant(nil)) // Pass a constant binding for preview
+            EventDetailView(event: Event(id: UUID(), title: "Sample Event", description: "This is a sample event description.", date: Date(), location: "Sample Location", createdAt: Date(), artistImageUrlString: nil, registrationDeadline: Calendar.current.date(byAdding: .day, value: 7, to: Date()), genres: nil, capacity: nil, note: nil), selectedEvent: .constant(nil)) // Pass a constant binding for preview
         }
     }
 } 

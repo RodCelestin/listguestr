@@ -77,10 +77,10 @@ struct FilterModalView_Previews: PreviewProvider {
     static var previews: some View {
         // Create some dummy events for the preview
         let dummyEvents = [
-            Event(id: UUID(), title: "Concert", description: nil, date: Date(), location: "Venue A", createdAt: Date(), artistImageUrlString: nil, registrationDeadline: nil, genres: ["Rock", "Pop"], capacity: nil),
-            Event(id: UUID(), title: "Art Exhibit", description: nil, date: Date(), location: "Gallery B", createdAt: Date(), artistImageUrlString: nil, registrationDeadline: nil, genres: ["Art"], capacity: nil),
-            Event(id: UUID(), title: "Workshop", description: nil, date: Date(), location: "Online", createdAt: Date(), artistImageUrlString: nil, registrationDeadline: nil, genres: ["Tech", "Coding", "Design"], capacity: nil),
-            Event(id: UUID(), title: "Festival", description: nil, date: Date(), location: "Park C", createdAt: Date(), artistImageUrlString: nil, registrationDeadline: nil, genres: ["Rock", "Outdoor"], capacity: nil)
+            Event(id: UUID(), title: "Concert", description: nil, date: Date(), location: "Venue A", createdAt: Date(), artistImageUrlString: nil, registrationDeadline: nil, genres: ["Rock", "Pop"], capacity: nil, note: nil),
+            Event(id: UUID(), title: "Art Exhibit", description: nil, date: Date(), location: "Gallery B", createdAt: Date(), artistImageUrlString: nil, registrationDeadline: nil, genres: ["Art"], capacity: nil, note: nil),
+            Event(id: UUID(), title: "Workshop", description: nil, date: Date(), location: "Online", createdAt: Date(), artistImageUrlString: nil, registrationDeadline: nil, genres: ["Tech", "Coding", "Design"], capacity: nil, note: nil),
+            Event(id: UUID(), title: "Festival", description: nil, date: Date(), location: "Park C", createdAt: Date(), artistImageUrlString: nil, registrationDeadline: nil, genres: ["Rock", "Outdoor"], capacity: nil, note: nil)
         ]
         // Pass a dummy set of selected genres for the preview
         FilterModalView(allEvents: dummyEvents, initialSelectedGenres: ["Rock", "Art"], applyFilters: { _ in })
