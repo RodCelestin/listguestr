@@ -10,21 +10,29 @@ import UIKit // Import UIKit for keyboard dismissal
 
 // MARK: - Custom TextField
 
-struct CustomTextField: View {
+struct CustomTextField<Field: Hashable>: View {
     var placeholder: String
     @Binding var text: String
+    var focusedField: FocusState<Field?>.Binding
+    var focusValue: Field
+    var submitLabel: SubmitLabel = .next
+    var onSubmit: (() -> Void)? = nil
 
     var body: some View {
         ZStack(alignment: .leading) {
             if text.isEmpty {
                 Text(placeholder)
                     .foregroundColor(.gray)
-                    .padding(.leading, 12) // internal padding for placeholder
+                    .padding(.leading, 12)
             }
-
             TextField("", text: $text)
-                .padding(.vertical, 12) // vertical padding inside text field
-                .padding(.horizontal, 12) // horizontal padding inside text field
+                .focused(focusedField, equals: focusValue)
+                .submitLabel(submitLabel)
+                .onSubmit {
+                    onSubmit?()
+                }
+                .padding(.vertical, 12)
+                .padding(.horizontal, 12)
         }
         .background(
             RoundedRectangle(cornerRadius: 8)
@@ -60,6 +68,14 @@ struct EventDetailView: View {
     @State private var registeredGuest: Guest? = nil // State to hold the registered guest data
     
     @State private var isAcknowledged = false // State to track acknowledgment checkbox
+    
+    // Add focus state enum and property
+    enum Field: Hashable {
+        case fullName, role, company, email, additionalRequest
+    }
+    @FocusState private var focusedField: Field?
+    
+    @State private var keyboardHeight: CGFloat = 0
     
     // Helper function to calculate days until registration closes
     private func daysUntilClosing(for event: Event) -> String? {
@@ -242,22 +258,50 @@ struct EventDetailView: View {
             VStack(alignment: .leading, spacing: 4) {
                 Text("Full Name")
                     .font(.headline)
-                CustomTextField(placeholder: "Full Name *", text: $fullName)
+                CustomTextField<Field>(
+                    placeholder: "Full Name *",
+                    text: $fullName,
+                    focusedField: $focusedField,
+                    focusValue: .fullName,
+                    submitLabel: .next,
+                    onSubmit: { focusedField = .role }
+                )
             }
             VStack(alignment: .leading, spacing: 4) {
                 Text("Role")
                     .font(.headline)
-                CustomTextField(placeholder: "Role *", text: $role)
+                CustomTextField<Field>(
+                    placeholder: "Role *",
+                    text: $role,
+                    focusedField: $focusedField,
+                    focusValue: .role,
+                    submitLabel: .next,
+                    onSubmit: { focusedField = .company }
+                )
             }
             VStack(alignment: .leading, spacing: 4) {
                 Text("Company")
                     .font(.headline)
-                CustomTextField(placeholder: "Company *", text: $company)
+                CustomTextField<Field>(
+                    placeholder: "Company *",
+                    text: $company,
+                    focusedField: $focusedField,
+                    focusValue: .company,
+                    submitLabel: .next,
+                    onSubmit: { focusedField = .email }
+                )
             }
             VStack(alignment: .leading, spacing: 4) {
                 Text("Email")
                     .font(.headline)
-                CustomTextField(placeholder: "Email *", text: $email)
+                CustomTextField<Field>(
+                    placeholder: "Email *",
+                    text: $email,
+                    focusedField: $focusedField,
+                    focusValue: .email,
+                    submitLabel: .next,
+                    onSubmit: { focusedField = .additionalRequest }
+                )
             }
             VStack(alignment: .leading, spacing: 4) {
                 Text("Want to add request?")
@@ -265,7 +309,14 @@ struct EventDetailView: View {
                 Text("This will help our team to handle best your request.")
                     .font(.caption)
                     .foregroundColor(.secondary)
-                CustomTextField(placeholder: "Your request...", text: $additionalRequest)
+                CustomTextField<Field>(
+                    placeholder: "Your request...",
+                    text: $additionalRequest,
+                    focusedField: $focusedField,
+                    focusValue: .additionalRequest,
+                    submitLabel: .done,
+                    onSubmit: { focusedField = nil }
+                )
             }
             if let errorMessage = registrationErrorMessage {
                 Text(errorMessage)
@@ -283,15 +334,18 @@ struct EventDetailView: View {
         }
     }
 
-    private var stickyCTAButton: some View {
+    private func stickyCTAButton(safeAreaInset: CGFloat) -> some View {
         ZStack(alignment: .bottom) {
+            // Gradient background, extends to the very bottom
             LinearGradient(
-                gradient: Gradient(colors: [Color.black.opacity(0.7), Color.black.opacity(0)]),
+                gradient: Gradient(colors: [Color.white.opacity(0.7), Color.white.opacity(0)]),
                 startPoint: .bottom,
                 endPoint: .top
             )
-            .frame(height: 100)
             .ignoresSafeArea(.container, edges: .bottom)
+            .frame(height: 120)
+ 
+            // Button, background also extends to the very bottom
             Button(action: {
                 showingSuccessMessage = false
                 registrationErrorMessage = nil
@@ -337,15 +391,18 @@ struct EventDetailView: View {
                 }
             }) {
                 Text("🤘 Send a request")
-                    .fontWeight(.semibold)
-                    .frame(maxWidth: .infinity)
-                    .padding()
-                    .background(Color.blue)
-                    .foregroundColor(.white)
-                    .cornerRadius(10)
-            }
-            .disabled(!isAcknowledged)
-            .padding([.horizontal, .bottom])
+                       .fontWeight(.semibold)
+                       .frame(maxWidth: .infinity)
+                       .padding() // padding intérieur
+               }
+            .background(
+                    Color.blue
+                        .ignoresSafeArea(.container, edges: .bottom)
+                )
+                .foregroundColor(.white)
+                .cornerRadius(10)
+                .padding(.horizontal)
+                .disabled(!isAcknowledged)
         }
     }
 
@@ -422,7 +479,10 @@ struct EventDetailView: View {
                         .padding(.bottom, 80)
                     }
                 }
-                stickyCTAButton
+                VStack(spacing: 0) {
+                    stickyCTAButton(safeAreaInset: geometry.safeAreaInsets.bottom)
+                    Spacer().frame(height: keyboardHeight > 0 ? keyboardHeight - geometry.safeAreaInsets.bottom + 12 : 0)
+                }
                 navigationLink
             }
         }
@@ -441,6 +501,24 @@ struct EventDetailView: View {
                     }
                 }
             }
+        }
+        .onAppear {
+            NotificationCenter.default.addObserver(forName: UIResponder.keyboardWillShowNotification, object: nil, queue: .main) { notif in
+                if let frame = notif.userInfo?[UIResponder.keyboardFrameEndUserInfoKey] as? CGRect {
+                    withAnimation(.easeOut(duration: 0.25)) {
+                        keyboardHeight = frame.height
+                    }
+                }
+            }
+            NotificationCenter.default.addObserver(forName: UIResponder.keyboardWillHideNotification, object: nil, queue: .main) { _ in
+                withAnimation(.easeOut(duration: 0.25)) {
+                    keyboardHeight = 0
+                }
+            }
+        }
+        .onDisappear {
+            NotificationCenter.default.removeObserver(self, name: UIResponder.keyboardWillShowNotification, object: nil)
+            NotificationCenter.default.removeObserver(self, name: UIResponder.keyboardWillHideNotification, object: nil)
         }
     }
     
