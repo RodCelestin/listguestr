@@ -10,6 +10,7 @@ import SwiftUI
 struct SettingsView: View {
     @Environment(\.dismiss) var dismiss
     @State private var showingResetConfirmation = false // State to control confirmation dialog
+    @State private var notificationsEnabled: Bool = false // State for notification toggle
     
     var body: some View {
         NavigationView {
@@ -20,14 +21,16 @@ struct SettingsView: View {
                     }
                     .foregroundColor(.red)
                 }
+                
+                Section(header: Text("Notifications")) {
+                    Toggle(isOn: $notificationsEnabled) {
+                        Text("Enable Notifications")
+                    }
+                }
             }
             .navigationTitle("Settings")
             .toolbar {
-                ToolbarItem(placement: .navigationBarTrailing) {
-                    Button("Done") {
-                        dismiss()
-                    }
-                }
+                
             }
             // Add confirmation dialog
             .confirmationDialog("Reset Applied Events", isPresented: $showingResetConfirmation, titleVisibility: .visible) {
