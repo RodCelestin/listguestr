@@ -18,6 +18,9 @@ struct ContentView: View {
     @State private var appliedGenres: Set<String> = [] // State to store applied filters
     @State private var appliedEvents: [Event] = [] // State to store events the user has applied to
     @State private var selectedEvent: Event? = nil // State to control navigation to EventDetailView
+    @State private var wishlistEventIDs: Set<String> = [] // State to store wishlist event IDs
+    @State private var isShowingToast: Bool = false
+    @State private var toastMessage: String = ""
     
     // Define columns for the grid view
     private let columns: [GridItem] = [
@@ -57,6 +60,19 @@ struct ContentView: View {
             appliedEventIDs.contains(event.id.uuidString)
         }
         print("Loaded applied events: \(appliedEvents.count)")
+    }
+    
+    // Helper function to load wishlist events from UserDefaults
+    private func loadWishlistEvents() {
+        let storedWishlistIDs = UserDefaults.standard.stringArray(forKey: "wishlistEventIDs") ?? []
+        wishlistEventIDs = Set(storedWishlistIDs)
+        print("Loaded wishlist events: \(wishlistEventIDs.count)")
+    }
+    
+    // Helper function to save wishlist events to UserDefaults
+    private func saveWishlistEvents() {
+        UserDefaults.standard.set(Array(wishlistEventIDs), forKey: "wishlistEventIDs")
+        print("Saved wishlist event IDs: \(wishlistEventIDs.count)")
     }
     
     // Helper function to calculate days until registration closes
@@ -113,6 +129,7 @@ struct ContentView: View {
         isLoading = false
         print("ContentView: Task finished")
         loadAppliedEvents() // Load applied events after events are fetched
+        loadWishlistEvents() // Load wishlist events after events are fetched
     }
     
     var body: some View {
@@ -280,6 +297,19 @@ struct ContentView: View {
                                             }
                                             .padding(.vertical, 4)
                                         }
+                                        .swipeActions(edge: .trailing) {
+                                            if !wishlistEventIDs.contains(event.id.uuidString) {
+                                                Button {
+                                                    wishlistEventIDs.insert(event.id.uuidString)
+                                                    saveWishlistEvents()
+                                                    toastMessage = "'\(event.title)' added to wishlist!"
+                                                    isShowingToast = true
+                                                } label: {
+                                                    Label("Wishlist", systemImage: "heart")
+                                                }
+                                                .tint(.pink)
+                                            }
+                                        }
                                     }
                                 }
                             }
@@ -353,7 +383,6 @@ struct ContentView: View {
                                             }
                                         }
                                     }
-                                    .padding(.horizontal)
                                 }
                                 
                                 // Section for Other Events in Grid
@@ -417,6 +446,19 @@ struct ContentView: View {
                                             .cornerRadius(12)
                                             .frame(maxWidth: .infinity, minHeight: 150) // Ensure cards expand and have a minimum height
                                         }
+                                        .swipeActions(edge: .trailing) {
+                                            if !wishlistEventIDs.contains(event.id.uuidString) {
+                                                Button {
+                                                    wishlistEventIDs.insert(event.id.uuidString)
+                                                    saveWishlistEvents()
+                                                    toastMessage = "'\(event.title)' added to wishlist!"
+                                                    isShowingToast = true
+                                                } label: {
+                                                    Label("Wishlist", systemImage: "heart")
+                                                }
+                                                .tint(.pink)
+                                            }
+                                        }
                                     }
                                 }
                                 .padding(.horizontal)
@@ -466,11 +508,15 @@ struct ContentView: View {
                         Image(systemName: "gear")
                     }
                 }
-            }
-            .task {
-                print("ContentView: Task started")
-                await loadEvents()
-                print("ContentView: Task finished")
+                
+                // Wishlist button
+                ToolbarItem(placement: .navigationBarTrailing) {
+                    NavigationLink {
+                        WishlistView(wishlistEventIDs: $wishlistEventIDs)
+                    } label: {
+                        Image(systemName: "heart.fill")
+                    }
+                }
             }
             .sheet(isPresented: $isShowingFilterModal) { // Present modal when isShowingFilterModal is true
                 // Placeholder for the filter modal view
@@ -479,6 +525,43 @@ struct ContentView: View {
                 }
                 .presentationDetents([.medium, .large]) // Optional: customize modal size
             }
+        }
+        .task {
+            print("ContentView: Task started for initial load.")
+            await loadEvents()
+        }
+        .overlay(alignment: .bottom) {
+            if isShowingToast {
+                ToastView(message: toastMessage, isShowing: $isShowingToast)
+                    .transition(.move(edge: .bottom).combined(with: .opacity))
+                    .zIndex(1) // Ensure the toast is on top of other content
+            }
+        }
+    }
+}
+
+struct ToastView: View {
+    let message: String
+    @Binding var isShowing: Bool
+    
+    var body: some View {
+        VStack {
+            Spacer()
+            Text(message)
+                .font(.caption)
+                .foregroundColor(.white)
+                .padding(.horizontal, 16)
+                .padding(.vertical, 8)
+                .background(Color.black.opacity(0.7))
+                .cornerRadius(10)
+                .padding(.bottom, 20) // Adjust padding from bottom edge
+                .onAppear {
+                    DispatchQueue.main.asyncAfter(deadline: .now() + 2) {
+                        withAnimation {
+                            isShowing = false
+                        }
+                    }
+                }
         }
     }
 }
