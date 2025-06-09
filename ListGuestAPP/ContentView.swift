@@ -18,7 +18,11 @@ struct ContentView: View {
     @State private var appliedGenres: Set<String> = [] // State to store applied filters
     @State private var appliedEvents: [Event] = [] // State to store events the user has applied to
     @State private var selectedEvent: Event? = nil // State to control navigation to EventDetailView
-    @State private var wishlistEventIDs: Set<String> = [] // State to store wishlist event IDs
+    @State private var wishlistEventIDs: Set<String> = [] {
+        didSet {
+            saveWishlistEvents()
+        }
+    } // State to store wishlist event IDs
     @State private var isShowingToast: Bool = false
     @State private var toastMessage: String = ""
     
@@ -159,7 +163,7 @@ struct ContentView: View {
                                         event in
                                         // Use selection and tag for programmatic navigation control
                                         NavigationLink(tag: event, selection: $selectedEvent) {
-                                            EventDetailView(event: event, selectedEvent: $selectedEvent) // Pass selectedEvent binding
+                                            EventDetailView(event: event, selectedEvent: $selectedEvent, wishlistEventIDs: $wishlistEventIDs, isShowingToast: $isShowingToast, toastMessage: $toastMessage) // Pass selectedEvent binding
                                         } label: {
                                             HStack(alignment: .top, spacing: 16) {
                                                 if let imageUrl = event.artistImageUrl {
@@ -234,7 +238,7 @@ struct ContentView: View {
                                 }) { event in
                                     // Use selection and tag for programmatic navigation control
                                     NavigationLink(tag: event, selection: $selectedEvent) {
-                                        EventDetailView(event: event, selectedEvent: $selectedEvent) // Pass selectedEvent binding
+                                        EventDetailView(event: event, selectedEvent: $selectedEvent, wishlistEventIDs: $wishlistEventIDs, isShowingToast: $isShowingToast, toastMessage: $toastMessage) // Pass selectedEvent binding
                                     } label: {
                                         HStack(alignment: .top, spacing: 16) {
                                             if let imageUrl = event.artistImageUrl {
@@ -301,7 +305,6 @@ struct ContentView: View {
                                             if !wishlistEventIDs.contains(event.id.uuidString) {
                                                 Button {
                                                     wishlistEventIDs.insert(event.id.uuidString)
-                                                    saveWishlistEvents()
                                                     toastMessage = "'\(event.title)' added to wishlist!"
                                                     isShowingToast = true
                                                 } label: {
@@ -332,7 +335,7 @@ struct ContentView: View {
                                             event in
                                             // Use selection and tag for programmatic navigation control
                                             NavigationLink(tag: event, selection: $selectedEvent) {
-                                                EventDetailView(event: event, selectedEvent: $selectedEvent) // Pass selectedEvent binding
+                                                EventDetailView(event: event, selectedEvent: $selectedEvent, wishlistEventIDs: $wishlistEventIDs, isShowingToast: $isShowingToast, toastMessage: $toastMessage) // Pass selectedEvent binding
                                             } label: {
                                                 VStack(spacing: 8) {
                                                     if let imageUrl = event.artistImageUrl {
@@ -397,7 +400,7 @@ struct ContentView: View {
                                     }) { event in
                                         // Use selection and tag for programmatic navigation control
                                         NavigationLink(tag: event, selection: $selectedEvent) {
-                                            EventDetailView(event: event, selectedEvent: $selectedEvent) // Pass selectedEvent binding
+                                            EventDetailView(event: event, selectedEvent: $selectedEvent, wishlistEventIDs: $wishlistEventIDs, isShowingToast: $isShowingToast, toastMessage: $toastMessage) // Pass selectedEvent binding
                                         } label: {
                                             VStack(spacing: 8) {
                                                 if let imageUrl = event.artistImageUrl {
@@ -450,7 +453,6 @@ struct ContentView: View {
                                             if !wishlistEventIDs.contains(event.id.uuidString) {
                                                 Button {
                                                     wishlistEventIDs.insert(event.id.uuidString)
-                                                    saveWishlistEvents()
                                                     toastMessage = "'\(event.title)' added to wishlist!"
                                                     isShowingToast = true
                                                 } label: {

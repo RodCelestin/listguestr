@@ -7,6 +7,9 @@ struct WishlistView: View {
     @State private var wishlistEvents: [Event] = []
     @State private var isLoading = true
     @State private var errorMessage: String?
+    @State private var selectedEvent: Event? = nil
+    @State private var isShowingToast: Bool = false
+    @State private var toastMessage: String = ""
     
     var body: some View {
         Group {
@@ -33,25 +36,28 @@ struct WishlistView: View {
             } else {
                 List {
                     ForEach(wishlistEvents) { event in
-                        // Similar row display as in ContentView, but simplified
-                        HStack(alignment: .top, spacing: 16) {
-                            if let imageUrl = event.artistImageUrl {
-                                AsyncImage(url: imageUrl) { image in
-                                    image.resizable()
-                                        .aspectRatio(contentMode: .fit)
-                                        .frame(width: 50, height: 50)
-                                        .clipShape(Circle())
-                                } placeholder: {
-                                    ProgressView()
-                                        .frame(width: 50, height: 50)
+                        NavigationLink(tag: event, selection: $selectedEvent) {
+                            EventDetailView(event: event, selectedEvent: $selectedEvent, wishlistEventIDs: $wishlistEventIDs, isShowingToast: $isShowingToast, toastMessage: $toastMessage)
+                        } label: {
+                            HStack(alignment: .top, spacing: 16) {
+                                if let imageUrl = event.artistImageUrl {
+                                    AsyncImage(url: imageUrl) { image in
+                                        image.resizable()
+                                            .aspectRatio(contentMode: .fit)
+                                            .frame(width: 50, height: 50)
+                                            .clipShape(Circle())
+                                    } placeholder: {
+                                        ProgressView()
+                                            .frame(width: 50, height: 50)
+                                    }
                                 }
-                            }
-                            VStack(alignment: .leading) {
-                                Text(event.title)
-                                    .font(.headline)
-                                Text(event.date, style: .date)
-                                    .font(.subheadline)
-                                    .foregroundColor(.secondary)
+                                VStack(alignment: .leading) {
+                                    Text(event.title)
+                                        .font(.headline)
+                                    Text(event.date, style: .date)
+                                        .font(.subheadline)
+                                        .foregroundColor(.secondary)
+                                }
                             }
                         }
                         .swipeActions(edge: .trailing) {
@@ -68,6 +74,13 @@ struct WishlistView: View {
         .navigationTitle("Wishlist")
         .task {
             await fetchWishlistEvents()
+        }
+        .overlay(alignment: .bottom) {
+            if isShowingToast {
+                ToastView(message: toastMessage, isShowing: $isShowingToast)
+                    .transition(.move(edge: .bottom).combined(with: .opacity))
+                    .zIndex(1)
+            }
         }
     }
     
@@ -99,8 +112,8 @@ struct WishlistView: View {
 struct WishlistView_Previews: PreviewProvider {
     static var previews: some View {
         NavigationView {
-            WishlistView(wishlistEventIDs: .constant(Set<String>()))
-                .environmentObject(EventService()) // Provide EventService for preview
+            WishlistView(wishlistEventIDs: .constant(Set<String>()) as Binding<Set<String>>)
+                .environmentObject(EventService())
         }
     }
 } 

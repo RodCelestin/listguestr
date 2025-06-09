@@ -51,6 +51,11 @@ struct EventDetailView: View {
     // Binding for controlling navigation from the root view
     @Binding var selectedEvent: Event? // Binding to the selected event in ContentView
     
+    // Add wishlist related bindings
+    @Binding var wishlistEventIDs: Set<String>
+    @Binding var isShowingToast: Bool
+    @Binding var toastMessage: String
+    
     // Access EventService from the environment
     @EnvironmentObject private var eventService: EventService
     
@@ -501,30 +506,56 @@ struct EventDetailView: View {
                     }
                 }
             }
+            ToolbarItem(placement: .navigationBarTrailing) {
+                Button(action: {
+                    toggleWishlist(for: event)
+                }) {
+                    Image(systemName: wishlistEventIDs.contains(event.id.uuidString) ? "heart.fill" : "heart")
+                        .foregroundColor(.pink)
+                }
+            }
         }
         .onAppear {
-            NotificationCenter.default.addObserver(forName: UIResponder.keyboardWillShowNotification, object: nil, queue: .main) { notif in
-                if let frame = notif.userInfo?[UIResponder.keyboardFrameEndUserInfoKey] as? CGRect {
-                    withAnimation(.easeOut(duration: 0.25)) {
-                        keyboardHeight = frame.height
-                    }
-                }
-            }
-            NotificationCenter.default.addObserver(forName: UIResponder.keyboardWillHideNotification, object: nil, queue: .main) { _ in
-                withAnimation(.easeOut(duration: 0.25)) {
-                    keyboardHeight = 0
-                }
-            }
+            setupKeyboardObserver()
         }
         .onDisappear {
-            NotificationCenter.default.removeObserver(self, name: UIResponder.keyboardWillShowNotification, object: nil)
-            NotificationCenter.default.removeObserver(self, name: UIResponder.keyboardWillHideNotification, object: nil)
+            removeKeyboardObserver()
         }
     }
     
-    // Helper function to hide the keyboard
+    // MARK: - Keyboard Handling
+    
+    private func setupKeyboardObserver() {
+        NotificationCenter.default.addObserver(forName: UIResponder.keyboardWillShowNotification, object: nil, queue: .main) { notification in
+            guard let userInfo = notification.userInfo,
+                  let keyboardRect = userInfo[UIResponder.keyboardFrameEndUserInfoKey] as? CGRect else { return }
+            keyboardHeight = keyboardRect.height
+        }
+        
+        NotificationCenter.default.addObserver(forName: UIResponder.keyboardWillHideNotification, object: nil, queue: .main) { _ in
+            keyboardHeight = 0
+        }
+    }
+    
+    private func removeKeyboardObserver() {
+        NotificationCenter.default.removeObserver(self, name: UIResponder.keyboardWillShowNotification, object: nil)
+        NotificationCenter.default.removeObserver(self, name: UIResponder.keyboardWillHideNotification, object: nil)
+    }
+    
     private func hideKeyboard() {
         UIApplication.shared.sendAction(#selector(UIResponder.resignFirstResponder), to: nil, from: nil, for: nil)
+    }
+    
+    private func toggleWishlist(for event: Event) {
+        let eventID = event.id.uuidString
+        if wishlistEventIDs.contains(eventID) {
+            wishlistEventIDs.remove(eventID)
+            toastMessage = "'\(event.title)' removed from wishlist!"
+        } else {
+            wishlistEventIDs.insert(eventID)
+            toastMessage = "'\(event.title)' added to wishlist!"
+        }
+        isShowingToast = true
     }
 }
 
@@ -532,7 +563,7 @@ struct EventDetailView_Previews: PreviewProvider {
     static var previews: some View {
         NavigationView {
             // Create a sample Event with registrationDeadline and location for the preview
-            EventDetailView(event: Event(id: UUID(), title: "Sample Event", description: "This is a sample event description.", date: Date(), location: "Sample Location", createdAt: Date(), artistImageUrlString: nil, registrationDeadline: Calendar.current.date(byAdding: .day, value: 7, to: Date()), genres: nil, capacity: nil, note: nil), selectedEvent: .constant(nil)) // Pass a constant binding for preview
+            EventDetailView(event: Event(id: UUID(), title: "Sample Event", description: "This is a sample event description.", date: Date(), location: "Sample Location", createdAt: Date(), artistImageUrlString: nil, registrationDeadline: Calendar.current.date(byAdding: .day, value: 7, to: Date()), genres: nil, capacity: nil, note: nil), selectedEvent: .constant(nil) as Binding<Event?>, wishlistEventIDs: .constant(Set<String>()) as Binding<Set<String>>, isShowingToast: .constant(false) as Binding<Bool>, toastMessage: .constant("") as Binding<String>) // Pass a constant binding for preview
         }
     }
 } 
